@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# ======================================
+# (c) 2018 Adrian Newby
+# ======================================
+#
+# Example script showing how to make VGs, LVs
+# and filesystems under Linux
+#
+# ======================================
+
+
+
+# First, the LVs supporting the general filesystems
+#
+# They all follow the same pattern:
+# 1. Extend the VG
+# 2. Create the LV
+# 3. Make the FS
+
+# Scratch FS for general temporary work
+vgextend -v rootvg /dev/mapper/scratch
+lvcreate -v -L 20416M -n scratch_lv rootvg /dev/mapper/scratch
+mkfs -V -t ext3 /dev/rootvg/scratch_lv
+
+# A FS for Oracle binaries
+vgextend -v rootvg /dev/mapper/ora_binaries
+lvcreate -v -L 16320M -n orabinaries_lv rootvg /dev/mapper/ora_binaries
+mkfs -V -t ext3 /dev/rootvg/orabinaries_lv
+
+# For the big backup filesystem, we want bigger extents for better performance
+vgcreate -v -s 32M backupvg /dev/mapper/backup
+lvcreate -v -L 1048512M -n backup_lv backupvg /dev/mapper/backup
+mkfs -V -t ext3 /dev/backupvg/backup_lv
+
+# Now the vg for the raw logical db volumes
+#
+# Here, the pattern is:
+# 1. Make a brand new, Oracle-specific VG
+# 2. Extend it with PVs
+# 3. Add the LVs to it
+
+
+vgcreate -v -s 16M oradbvg /dev/mapper/db_data_a1
+vgextend -v oradbvg /dev/mapper/db_data_a2
+vgextend -v oradbvg /dev/mapper/db_data_b1
+vgextend -v oradbvg /dev/mapper/db_data_b2
+vgextend -v oradbvg /dev/mapper/db_data_x
+vgextend -v oradbvg /dev/mapper/db_general
+vgextend -v oradbvg /dev/mapper/db_index_a1
+vgextend -v oradbvg /dev/mapper/db_index_a2
+vgextend -v oradbvg /dev/mapper/db_index_b1
+vgextend -v oradbvg /dev/mapper/db_index_b2
+vgextend -v oradbvg /dev/mapper/db_index_x
+vgextend -v oradbvg /dev/mapper/db_redo_a
+vgextend -v oradbvg /dev/mapper/db_redo_b
+
+vgextend -v oradbvg /dev/mapper/db_redo_p
+vgextend -v oradbvg /dev/mapper/db_redo_q
+vgextend -v oradbvg /dev/mapper/db_redo_r
+vgextend -v oradbvg /dev/mapper/db_redo_x
+vgextend -v oradbvg /dev/mapper/db_redo_y
+vgextend -v oradbvg /dev/mapper/db_redo_z
+
+vgextend -v oradbvg /dev/mapper/db_temp
+vgextend -v oradbvg /dev/mapper/db_undo
+
+# ... followed by the LVs themselves
+lvcreate -v -L 65472M -n db_data_a1_lv oradbvg /dev/mapper/db_data_a1
+lvcreate -v -L 131008M -n db_data_a2_lv oradbvg /dev/mapper/db_data_a2
+lvcreate -v -L 65472M -n db_data_b1_lv oradbvg /dev/mapper/db_data_b1
+lvcreate -v -L 131008M -n db_data_b2_lv oradbvg /dev/mapper/db_data_b2
+lvcreate -v -L 393152M -n db_data_x_lv oradbvg /dev/mapper/db_data_x
+
+lvcreate -v -L 2048M -n db_system_lv oradbvg /dev/mapper/db_general
+lvcreate -v -L 2048M -n db_sysaux_lv oradbvg /dev/mapper/db_general
+lvcreate -v -L 1024M -n db_users_lv oradbvg /dev/mapper/db_general
+lvcreate -v -L 1024M -n db_ctl1_lv oradbvg /dev/mapper/db_general
+lvcreate -v -L 1024M -n db_ctl2_lv oradbvg /dev/mapper/db_general
+
+lvcreate -v -L 32704M -n db_index_a1_lv oradbvg /dev/mapper/db_index_a1
+lvcreate -v -L 262080M -n db_index_a2_lv oradbvg /dev/mapper/db_index_a2
+lvcreate -v -L 32704M -n db_index_b1_lv oradbvg /dev/mapper/db_index_b1
+lvcreate -v -L 262080M -n db_index_b2_lv oradbvg /dev/mapper/db_index_b2
+lvcreate -v -L 262080M -n db_index_x_lv oradbvg /dev/mapper/db_index_x
+
+# Note: These LVs share a common PV - ugly - not recommended
+lvcreate -v -L 480M -n db_redo_a1_lv oradbvg /dev/mapper/db_redo_a
+lvcreate -v -L 480M -n db_redo_a2_lv oradbvg /dev/mapper/db_redo_a
+lvcreate -v -L 480M -n db_redo_b1_lv oradbvg /dev/mapper/db_redo_b
+lvcreate -v -L 480M -n db_redo_b2_lv oradbvg /dev/mapper/db_redo_b
+
+lvcreate -v -L 2064M -n db_redo_p_lv oradbvg /dev/mapper/db_redo_p
+lvcreate -v -L 2064M -n db_redo_q_lv oradbvg /dev/mapper/db_redo_q
+lvcreate -v -L 2064M -n db_redo_r_lv oradbvg /dev/mapper/db_redo_r
+lvcreate -v -L 2064M -n db_redo_x_lv oradbvg /dev/mapper/db_redo_x
+lvcreate -v -L 2064M -n db_redo_y_lv oradbvg /dev/mapper/db_redo_y
+lvcreate -v -L 2064M -n db_redo_z_lv oradbvg /dev/mapper/db_redo_z
+
+lvcreate -v -L 65472M -n db_temp_lv oradbvg /dev/mapper/db_temp
+lvcreate -v -L 65472M -n db_undo_lv oradbvg /dev/mapper/db_undo
+
+
+# List results
+vgdisplay -v rootvg
+vgdisplay -v backupvg
+vgdisplay -v oradbvg
+
+
+

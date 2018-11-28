@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# ======================================
+# (c) 2018 Adrian Newby
+# ======================================
+#
+# This script will iterate through a file 
+# formatted as follows and craete a PV
+# for every device-mapped drive it
+# finds, whose alias matches the label in 
+# the leftmost column of the file
+#
+# Note: the second and third fields are unused
+# by this script but are used by other related
+# LV management scripts available as part of this
+# package.
+#
+#  db_data_b2	128	50002ac0005e0854
+#  db_data_x	384	50002ac0005f0854
+#  db_index_a1	32	50002ac000600854
+#  db_index_a2	256	50002ac000610854
+#
+# ======================================
+
+LUNS=$1
+
+while read LUN
+do
+	ALIAS=`echo $LUN | awk '{ print $1 }'`
+	echo "Making PV for device /dev/mapper/$ALIAS ..."
+	pvcreate -v -M2 /dev/mapper/$ALIAS
+	echo ""
+
+done < $LUNS
+
+

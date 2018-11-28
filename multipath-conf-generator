@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# ======================================
+# (c) 2018 Adrian Newby
+# ======================================
+#
+# This script will iterate through a file 
+# formatted as follows and output a
+# validly-formatted multipath.conf
+# configuration to stdout.  This, in turn,
+# can be redirected to a file and used
+# with the Linux DM-MPIO system.
+#
+# Each multipath entry is aliased
+# to the first lable on each line
+# of the supplied file, which is supplied 
+# as a command-line parameter.
+#
+# Note: the second field is unused
+# by this script.
+#
+#  db_data_b2	128	50002ac0005e0854
+#  db_data_x	384	50002ac0005f0854
+#  db_index_a1	32	50002ac000600854
+#  db_index_a2	256	50002ac000610854
+#
+#
+# (See bottom of file for changelog)
+# ======================================
+
+LUNS=$1
+
+# Defaults
+echo "defaults {"
+echo "	polling_interval 10"
+echo "	path_grouping_policy    multibus"
+echo " 	getuid_callout  \"/sbin/scsi_id -g -u -s /block/%n\""
+echo "	prio_callout   /bin/true"
+echo "	rr_min_io       100"
+echo "	rr_weight       priorities"
+echo "	failback        immediate"
+echo "	user_friendly_names yes"
+echo "}"
+echo ""
+
+# Blacklist
+echo "devnode_blacklist {"
+echo "	devnode \"^(ram|raw|loop|fd|md|dm-|sr|scd|st)[0-9]*\""
+echo "	devnode \"^hd[a-z][[0-9]*]\""
+echo "	devnode \"^sda$\""
+echo "	devnode \"^cciss!c[0-9]d[0-9]\""
+echo "}"
+echo ""
+
+# Multipath 
+echo "multipaths {"
+
+while read LUN
+do
+	echo "	multipath {"
+	echo "		wwid 3`echo $LUN | awk '{print $3}'`"
+	echo "		alias `echo $LUN | awk '{print $1}'`"
+	echo "	}"
+done < $LUNS
+
+echo "}"
+echo ""
+
+# Devices
+echo "devices {"
+echo "	device {"
+echo "		vendor \"3PARdata\""
+echo "		product \"VV\""
+echo "		path_checker tur"
+echo "		no_path_retry 60"
+echo "	}"
+echo "}"
+
+# ======================================
+#  $Log: /unix-linux/vol-mgt/linux/multipath-conf-generator $
+# 
+# 1     11/20/09 8:55a Acn
+# Relocated from database/scripts/util
+# 
+# 1     11/11/09 2:46p Acn
+# Initial checkin
+# ======================================
+
